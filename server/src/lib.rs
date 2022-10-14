@@ -1,10 +1,9 @@
-use std::{
-    env,
-    error::Error,
-    net::{TcpListener, TcpStream},
-};
+use std::{env, error::Error, net::TcpListener};
 
 use threadpool::ThreadPool;
+
+mod client;
+use client::Client;
 
 pub struct Config {
     pub addr: String,
@@ -39,20 +38,6 @@ impl Config {
     }
 }
 
-struct Client {
-    stream: TcpStream,
-}
-
-impl Client {
-    fn new(stream: TcpStream) -> Self {
-        Client { stream }
-    }
-
-    fn run(&self) {
-        todo!()
-    }
-}
-
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(config.addr).unwrap();
 
@@ -64,7 +49,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             _ => continue,
         };
 
-        let client = Client::new(stream);
+        let mut client = Client::new(stream);
 
         pool.execute(move || client.run());
     }
