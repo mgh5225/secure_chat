@@ -1,4 +1,4 @@
-mod PacketManager {
+pub mod PacketManager {
     use crate::packet::{DataPacket, PacketError};
 
     pub fn sendPacket(packet: DataPacket) -> Result<(), PacketError> {

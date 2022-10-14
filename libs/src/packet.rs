@@ -21,6 +21,15 @@ impl DataPacket {
             data: message,
         }
     }
+
+    pub fn new(buf: String) -> Result<Self, serde_json::Error> {
+        let packet: Self = serde_json::from_str(&buf)?;
+        Ok(packet)
+    }
+
+    pub fn get_type(&self) -> PacketType {
+        self.p_type
+    }
 }
 
 pub struct Packet<T> {
@@ -60,6 +69,15 @@ where
 
     pub fn get(&self) -> (PacketType, &T) {
         (self.p_type, &self.body)
+    }
+
+    pub fn parse(packet: &'a DataPacket, error_message: &str) -> Result<Self, DataPacket> {
+        let packet = match Self::from(packet) {
+            Ok(packet) => packet,
+            _ => return Err(DataPacket::ErrorMessage(String::from(error_message))),
+        };
+
+        Ok(packet)
     }
 }
 
