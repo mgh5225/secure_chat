@@ -18,7 +18,7 @@ impl Page for LoginPage {
         Box::new(
             Dialog::around(
                 LinearLayout::vertical()
-                    .child(TextView::new("User Name"))
+                    .child(TextView::new("Username"))
                     .child(EditView::new().with_name("user"))
                     .child(TextView::new("Password"))
                     .child(EditView::new().secret().with_name("pass")),
