@@ -39,6 +39,7 @@ impl Client {
         match stream {
             Ok(server) => {
                 self.server = Some(server);
+                self.tx.send(ClientMessage::ConnectedToServer).unwrap();
             }
             Err(err) => self.tx.send(ClientMessage::Err(err.to_string())).unwrap(),
         }
@@ -69,5 +70,7 @@ impl Client {
 pub enum ClientMessage {
     Terminate,
     ConnectToServer(String, String),
+    Login(String, String),
     Err(String),
+    ConnectedToServer,
 }

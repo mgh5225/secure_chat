@@ -51,7 +51,6 @@ impl Page for MainPage {
 }
 
 pub enum MainPageEvent {
-    Retry,
     ConnectToServer(String, String),
     Quit,
 }

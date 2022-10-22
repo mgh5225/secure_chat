@@ -2,6 +2,7 @@ mod page;
 pub use page::{Page, PageEvent, PageMessage};
 
 mod pages;
+pub use pages::login_page::{LoginPage, LoginPageEvent};
 pub use pages::main_page::{MainPage, MainPageEvent};
 
 mod client;
@@ -50,10 +51,11 @@ impl Manager {
         let rx_page = Arc::clone(&self.rx_page);
 
         let tx = self.tx.clone();
+        let tx_page = self.tx_page.clone();
 
         let cb_sink = self.cb_sink.clone();
 
-        let channel_handler = thread::spawn(move || Self::manage_client(cb_sink, rx));
+        let channel_handler = thread::spawn(move || Self::manage_client(cb_sink, tx_page, rx));
 
         self.channel_handler = Some(channel_handler);
 
@@ -66,7 +68,11 @@ impl Manager {
         self.siv.run();
     }
 
-    fn manage_client(cb_sink: cursive::CbSink, rx: Arc<Mutex<mpsc::Receiver<ClientMessage>>>) {
+    fn manage_client(
+        cb_sink: cursive::CbSink,
+        tx: mpsc::Sender<PageMessage>,
+        rx: Arc<Mutex<mpsc::Receiver<ClientMessage>>>,
+    ) {
         loop {
             let message = rx.lock().unwrap().recv().unwrap();
 
@@ -75,6 +81,17 @@ impl Manager {
                 ClientMessage::Err(err) => {
                     cb_sink
                         .send(Box::new(|s| s.add_layer(Self::render_error(err))))
+                        .unwrap();
+                }
+                ClientMessage::ConnectedToServer => {
+                    let login_tx = tx.clone();
+                    cb_sink
+                        .send(Box::new(|s| {
+                            let login_page = Self::render_login_page(login_tx);
+
+                            s.pop_layer();
+                            s.add_layer(login_page.body());
+                        }))
                         .unwrap();
                 }
                 _ => {}
@@ -104,12 +121,27 @@ impl Manager {
                 }
                 _ => {}
             }
+
+            match message.downcast_ref::<LoginPageEvent>() {
+                Some(LoginPageEvent::Quit) => {
+                    break;
+                }
+                Some(LoginPageEvent::Login(user, pass)) => {
+                    tx.send(ClientMessage::Login(String::from(user), String::from(pass)))
+                        .unwrap();
+                }
+                _ => {}
+            }
         }
     }
 
     fn render_main_page(&mut self) {
         let main_page = MainPage::new(self.tx_page.clone());
         self.siv.add_layer(main_page.body());
+    }
+
+    fn render_login_page(tx: mpsc::Sender<PageMessage>) -> LoginPage {
+        LoginPage::new(tx)
     }
 
     fn render_error(message: String) -> Dialog {

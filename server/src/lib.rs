@@ -43,6 +43,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let pool = ThreadPool::new(config.max_workers);
 
+    println!("[!] Server is running");
+
     for stream in listener.incoming() {
         let stream = match stream {
             Ok(stream) => stream,
