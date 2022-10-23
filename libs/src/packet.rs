@@ -67,8 +67,8 @@ where
         Self { p_type, body }
     }
 
-    pub fn get(&self) -> (PacketType, &T) {
-        (self.p_type, &self.body)
+    pub fn get(self) -> (PacketType, T) {
+        (self.p_type, self.body)
     }
 
     pub fn parse(packet: &'a DataPacket, error_message: &str) -> Result<Self, DataPacket> {

@@ -2,8 +2,11 @@ use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
+use crate::Session;
+
 pub struct Client {
     server: Option<TcpStream>,
+    session: Option<Session>,
     tx: mpsc::Sender<ClientMessage>,
     pub channel_handler: Option<thread::JoinHandle<()>>,
 }
@@ -19,6 +22,7 @@ impl Client {
 
         let client = Arc::new(Mutex::new(Client {
             server: None,
+            session: None,
             tx,
             channel_handler: None,
         }));
@@ -33,12 +37,13 @@ impl Client {
         client
     }
 
-    pub fn connect(&mut self, addr: String, port: String) {
+    fn connect(&mut self, addr: String, port: String) {
         let stream = TcpStream::connect(format!("{addr}:{port}", addr = addr, port = port));
 
         match stream {
             Ok(server) => {
                 self.server = Some(server);
+                self.session = Some(Session::new());
                 self.tx.send(ClientMessage::ConnectedToServer).unwrap();
             }
             Err(err) => self.tx.send(ClientMessage::Err(err.to_string())).unwrap(),
@@ -61,6 +66,15 @@ impl Client {
                 ClientMessage::ConnectToServer(addr, port) => {
                     client.lock().unwrap().connect(addr, port);
                 }
+                ClientMessage::Login(user, pass) => match &mut client.lock().unwrap().session {
+                    Some(session) => match session.login(user, pass) {
+                        Ok(_) => tx.send(ClientMessage::LoginSuccess).unwrap(),
+                        Err(err) => tx.send(ClientMessage::Err(err.message)).unwrap(),
+                    },
+                    None => tx
+                        .send(ClientMessage::Err(String::from("Session Not Created")))
+                        .unwrap(),
+                },
                 _ => {}
             }
         }
@@ -73,4 +87,5 @@ pub enum ClientMessage {
     Login(String, String),
     Err(String),
     ConnectedToServer,
+    LoginSuccess,
 }

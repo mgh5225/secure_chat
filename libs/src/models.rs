@@ -11,6 +11,17 @@ pub mod base {
         password: String,
     }
 
+    impl User {
+        pub fn login_body(user: String, pass: String) -> Self {
+            Self {
+                id: Uuid::nil(),
+                name: String::new(),
+                username: user,
+                password: pass,
+            }
+        }
+    }
+
     #[derive(Serialize, Deserialize)]
     pub struct Message {
         id: Uuid,

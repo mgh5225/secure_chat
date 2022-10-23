@@ -8,6 +8,9 @@ pub use pages::main_page::{MainPage, MainPageEvent};
 mod client;
 pub use client::{Client, ClientMessage};
 
+mod session;
+pub use session::Session;
+
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
