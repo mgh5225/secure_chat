@@ -1,24 +1,57 @@
 pub mod base {
+    use std::collections::HashMap;
+
     use serde::{Deserialize, Serialize};
     use time::PrimitiveDateTime;
     use uuid::Uuid;
 
     #[derive(Serialize, Deserialize)]
     pub struct User {
-        id: Uuid,
         name: String,
         username: String,
         password: String,
     }
 
     impl User {
-        pub fn login_body(user: String, pass: String) -> Self {
+        pub fn simple(user: String, pass: String) -> Self {
             Self {
-                id: Uuid::nil(),
                 name: String::new(),
                 username: user,
                 password: pass,
             }
+        }
+
+        pub fn full(name: String, user: String, pass: String) -> Self {
+            Self {
+                name,
+                username: user,
+                password: pass,
+            }
+        }
+
+        pub fn get_hash(self) -> (String, Vec<(u8, String)>) {
+            let mut key_pairs = Vec::new();
+            key_pairs.push((0, self.name));
+            key_pairs.push((1, self.username.clone()));
+            key_pairs.push((2, self.password));
+
+            (self.username, key_pairs)
+        }
+
+        pub fn from_hash(hash: HashMap<u8, String>) -> Self {
+            let name = hash.get(&0).unwrap();
+            let username = hash.get(&1).unwrap();
+            let password = hash.get(&2).unwrap();
+
+            Self {
+                name: name.to_string(),
+                username: username.to_string(),
+                password: password.to_string(),
+            }
+        }
+
+        pub fn get_key(self) -> String {
+            return self.username;
         }
     }
 

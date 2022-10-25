@@ -27,6 +27,12 @@ impl DataPacket {
         Ok(packet)
     }
 
+    pub fn buf(&self) -> Result<String, serde_json::Error> {
+        let buf = serde_json::to_string(self)?;
+
+        Ok(buf)
+    }
+
     pub fn get_type(&self) -> PacketType {
         self.p_type
     }
@@ -101,7 +107,7 @@ pub enum PacketType {
 }
 
 pub struct PacketError {
-    message: String,
+    pub message: String,
 }
 
 impl fmt::Display for PacketError {

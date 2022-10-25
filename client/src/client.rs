@@ -5,7 +5,6 @@ use std::thread;
 use crate::Session;
 
 pub struct Client {
-    server: Option<TcpStream>,
     session: Option<Session>,
     tx: mpsc::Sender<ClientMessage>,
     pub channel_handler: Option<thread::JoinHandle<()>>,
@@ -21,7 +20,6 @@ impl Client {
         let tx_2 = tx.clone();
 
         let client = Arc::new(Mutex::new(Client {
-            server: None,
             session: None,
             tx,
             channel_handler: None,
@@ -41,9 +39,8 @@ impl Client {
         let stream = TcpStream::connect(format!("{addr}:{port}", addr = addr, port = port));
 
         match stream {
-            Ok(server) => {
-                self.server = Some(server);
-                self.session = Some(Session::new());
+            Ok(stream) => {
+                self.session = Some(Session::new(stream));
                 self.tx.send(ClientMessage::ConnectedToServer).unwrap();
             }
             Err(err) => self.tx.send(ClientMessage::Err(err.to_string())).unwrap(),

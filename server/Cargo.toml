@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 threadpool = "1.8.1"
+redis = "0.22.1"
 libs = { path = "../libs" }

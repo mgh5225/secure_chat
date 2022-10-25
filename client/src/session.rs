@@ -1,26 +1,28 @@
 use libs::{
     packet::{DataPacket, Packet, PacketType},
-    BaseModels, PacketManager, PacketModels,
+    packet_manager, BaseModels, PacketModels,
 };
-use std::fmt;
+use std::{fmt, net::TcpStream};
 
 pub struct Session {
     me: Option<BaseModels::User>,
     groups: Vec<BaseModels::Group>,
     messages: Vec<BaseModels::Message>,
+    stream: TcpStream,
 }
 
 impl Session {
-    pub fn new() -> Self {
+    pub fn new(stream: TcpStream) -> Self {
         Self {
             me: None,
             groups: Vec::new(),
             messages: Vec::new(),
+            stream,
         }
     }
 
     pub fn login(&mut self, user: String, pass: String) -> Result<(), SessionError> {
-        let body = BaseModels::User::login_body(user, pass);
+        let body = BaseModels::User::simple(user, pass);
 
         let packet = Packet::new(PacketType::Login, body);
 
@@ -33,7 +35,7 @@ impl Session {
             }
         };
 
-        let res = PacketManager::sendPacket(data_packet);
+        let res = packet_manager::sendPacket(&mut self.stream, data_packet);
 
         if let Err(err) = res {
             return Err(SessionError {
@@ -41,7 +43,7 @@ impl Session {
             });
         }
 
-        let data_packet = match PacketManager::recvPacket() {
+        let data_packet = match packet_manager::recvPacket(&mut self.stream) {
             Ok(packet) => packet,
             Err(err) => {
                 return Err(SessionError {
@@ -53,7 +55,8 @@ impl Session {
         let packet: Packet<BaseModels::User> =
             match Packet::parse(&data_packet, "Wrong Packet Received") {
                 Ok(packet) => packet,
-                Err(data_packet) => match PacketManager::sendPacket(data_packet) {
+                Err(data_packet) => match packet_manager::sendPacket(&mut self.stream, data_packet)
+                {
                     Ok(_) => {
                         return Err(SessionError {
                             message: String::from("Wrong Packet Received"),

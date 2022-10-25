@@ -1,9 +1,12 @@
-use std::{env, error::Error, net::TcpListener};
+use std::{env, net::TcpListener, sync::Arc};
 
 use threadpool::ThreadPool;
 
 mod client;
 use client::Client;
+
+mod database;
+use crate::database::Database;
 
 pub struct Config {
     pub addr: String,
@@ -38,12 +41,22 @@ impl Config {
     }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let listener = TcpListener::bind(config.addr).unwrap();
+pub fn run(config: Config) -> Result<(), String> {
+    let listener = match TcpListener::bind(config.addr) {
+        Ok(listener) => listener,
+        Err(err) => return Err(err.to_string()),
+    };
 
     let pool = ThreadPool::new(config.max_workers);
 
     println!("[!] Server is running");
+
+    let database = match Database::new() {
+        Ok(db) => db,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    let database = Arc::new(database);
 
     for stream in listener.incoming() {
         let stream = match stream {
@@ -51,7 +64,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             _ => continue,
         };
 
-        let mut client = Client::new(stream);
+        let mut client = Client::new(stream, Arc::clone(&database));
 
         pool.execute(move || client.run());
     }

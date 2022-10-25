@@ -1,28 +1,29 @@
-use std::{io::Read, net::TcpStream};
+use std::{net::TcpStream, sync::Arc};
 
 use libs::{
     packet::{DataPacket, Packet, PacketType},
-    BaseModels, PacketManager, PacketModels,
+    packet_manager, BaseModels, PacketModels,
 };
+
+use crate::Database;
 
 pub struct Client {
     stream: TcpStream,
     me: Option<BaseModels::User>,
+    db: Arc<Database>,
 }
 
 impl Client {
-    pub fn new(stream: TcpStream) -> Self {
-        Client { stream, me: None }
+    pub fn new(stream: TcpStream, db: Arc<Database>) -> Self {
+        Client {
+            stream,
+            db,
+            me: None,
+        }
     }
 
     pub fn run(&mut self) {
-        let mut buf: String = String::from("");
-        self.stream.read_to_string(&mut buf).unwrap();
-
-        let packet = match DataPacket::new(buf) {
-            Ok(packet) => packet,
-            _ => return,
-        };
+        let packet = packet_manager::recvPacket(&mut self.stream).unwrap();
 
         let packet: DataPacket = match packet.get_type() {
             PacketType::PubKey => todo!(),
@@ -78,6 +79,8 @@ impl Client {
             PacketType::Listen => todo!(),
             _ => DataPacket::ErrorMessage(String::from("Packet Type Error")),
         };
+
+        packet_manager::sendPacket(&mut self.stream, packet).unwrap();
     }
 
     fn exchange_keys(&self) -> DataPacket {
@@ -87,10 +90,20 @@ impl Client {
         todo!()
     }
     fn register_user(&self, packet: Packet<BaseModels::User>) -> DataPacket {
-        todo!()
+        let res_packet = match self.db.create_user(packet.get().1) {
+            Ok(()) => DataPacket::OkMessage(String::from("User Created Successfully")),
+            Err(err) => DataPacket::ErrorMessage(err.to_string()),
+        };
+
+        res_packet
     }
     fn login_user(&self, packet: Packet<BaseModels::User>) -> DataPacket {
-        todo!()
+        let user = match self.db.get_user(packet.get().1.get_key()) {
+            Ok(user) => user,
+            Err(err) => return DataPacket::ErrorMessage(err.to_string()),
+        };
+
+        DataPacket::OkMessage(String::from("Login Successfully"))
     }
     fn create_group(&self, packet: Packet<BaseModels::Group>) -> DataPacket {
         todo!()
