@@ -23,7 +23,7 @@ impl Client {
     }
 
     pub fn run(&mut self) {
-        let packet = packet_manager::recvPacket(&mut self.stream).unwrap();
+        let packet = packet_manager::recv_packet(&mut self.stream).unwrap();
 
         let packet: DataPacket = match packet.get_type() {
             PacketType::PubKey => todo!(),
@@ -80,7 +80,7 @@ impl Client {
             _ => DataPacket::ErrorMessage(String::from("Packet Type Error")),
         };
 
-        packet_manager::sendPacket(&mut self.stream, packet).unwrap();
+        packet_manager::send_packet(&mut self.stream, packet).unwrap();
     }
 
     fn exchange_keys(&self) -> DataPacket {

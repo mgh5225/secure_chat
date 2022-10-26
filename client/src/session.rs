@@ -35,7 +35,7 @@ impl Session {
             }
         };
 
-        let res = packet_manager::sendPacket(&mut self.stream, data_packet);
+        let res = packet_manager::send_packet(&mut self.stream, data_packet);
 
         if let Err(err) = res {
             return Err(SessionError {
@@ -43,7 +43,7 @@ impl Session {
             });
         }
 
-        let data_packet = match packet_manager::recvPacket(&mut self.stream) {
+        let data_packet = match packet_manager::recv_packet(&mut self.stream) {
             Ok(packet) => packet,
             Err(err) => {
                 return Err(SessionError {
@@ -55,19 +55,20 @@ impl Session {
         let packet: Packet<BaseModels::User> =
             match Packet::parse(&data_packet, "Wrong Packet Received") {
                 Ok(packet) => packet,
-                Err(data_packet) => match packet_manager::sendPacket(&mut self.stream, data_packet)
-                {
-                    Ok(_) => {
-                        return Err(SessionError {
-                            message: String::from("Wrong Packet Received"),
-                        })
+                Err(data_packet) => {
+                    match packet_manager::send_packet(&mut self.stream, data_packet) {
+                        Ok(_) => {
+                            return Err(SessionError {
+                                message: String::from("Wrong Packet Received"),
+                            })
+                        }
+                        Err(err) => {
+                            return Err(SessionError {
+                                message: err.to_string(),
+                            })
+                        }
                     }
-                    Err(err) => {
-                        return Err(SessionError {
-                            message: err.to_string(),
-                        })
-                    }
-                },
+                }
             };
 
         self.me = Some(packet.get().1);

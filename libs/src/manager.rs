@@ -6,7 +6,7 @@ pub mod packet_manager {
 
     use crate::packet::{DataPacket, PacketError};
 
-    pub fn sendPacket(stream: &mut TcpStream, packet: DataPacket) -> Result<(), PacketError> {
+    pub fn send_packet(stream: &mut TcpStream, packet: DataPacket) -> Result<(), PacketError> {
         let buf = match packet.buf() {
             Ok(buf) => buf,
             Err(err) => {
@@ -31,7 +31,7 @@ pub mod packet_manager {
         Ok(())
     }
 
-    pub fn recvPacket(stream: &mut TcpStream) -> Result<DataPacket, PacketError> {
+    pub fn recv_packet(stream: &mut TcpStream) -> Result<DataPacket, PacketError> {
         let mut buf = String::new();
         match stream.read_to_string(&mut buf) {
             Ok(_) => match DataPacket::new(buf) {
@@ -46,19 +46,19 @@ pub mod packet_manager {
         }
     }
 
-    pub fn signPacket(packet: DataPacket) -> Result<DataPacket, PacketError> {
+    pub fn sign_packet(packet: DataPacket) -> Result<DataPacket, PacketError> {
         todo!()
     }
 
-    pub fn checkSignedPacket(packet: DataPacket) -> Result<(), PacketError> {
+    pub fn check_signed_packet(packet: DataPacket) -> Result<(), PacketError> {
         todo!()
     }
 
-    pub fn encryptPacket(packet: DataPacket) -> Result<DataPacket, PacketError> {
+    pub fn encrypt_packet(packet: DataPacket) -> Result<DataPacket, PacketError> {
         todo!()
     }
 
-    pub fn decryptPacket(packet: DataPacket) -> Result<DataPacket, PacketError> {
+    pub fn decrypt_packet(packet: DataPacket) -> Result<DataPacket, PacketError> {
         todo!()
     }
 }
