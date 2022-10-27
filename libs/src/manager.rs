@@ -16,7 +16,24 @@ pub mod packet_manager {
             }
         };
 
-        if let Err(err) = stream.write(buf.as_bytes()) {
+        let buf = buf.as_bytes();
+
+        let start: [u8; 1] = [2];
+        let end: [u8; 1] = [3];
+
+        if let Err(err) = stream.write(&start) {
+            return Err(PacketError {
+                message: err.to_string(),
+            });
+        }
+
+        if let Err(err) = stream.write(buf) {
+            return Err(PacketError {
+                message: err.to_string(),
+            });
+        }
+
+        if let Err(err) = stream.write(&end) {
             return Err(PacketError {
                 message: err.to_string(),
             });
@@ -32,14 +49,49 @@ pub mod packet_manager {
     }
 
     pub fn recv_packet(stream: &mut TcpStream) -> Result<DataPacket, PacketError> {
-        let mut buf = String::new();
-        match stream.read_to_string(&mut buf) {
-            Ok(_) => match DataPacket::new(buf) {
-                Ok(packet) => Ok(packet),
-                Err(err) => Err(PacketError {
+        let mut start: [u8; 1] = [0];
+        if let Err(err) = stream.read_exact(&mut start) {
+            return Err(PacketError {
+                message: err.to_string(),
+            });
+        }
+
+        if start[0] != 2 {
+            return Err(PacketError {
+                message: String::from("Bad Packet"),
+            });
+        }
+
+        let mut buf = Vec::new();
+
+        while let Some(data) = stream.bytes().next() {
+            match data {
+                Ok(byte) => {
+                    if byte == 3 {
+                        break;
+                    }
+
+                    buf.push(byte);
+                }
+                Err(err) => {
+                    return Err(PacketError {
+                        message: err.to_string(),
+                    });
+                }
+            }
+        }
+
+        let buf = match String::from_utf8(buf) {
+            Ok(buf) => buf,
+            Err(err) => {
+                return Err(PacketError {
                     message: err.to_string(),
-                }),
-            },
+                });
+            }
+        };
+
+        match DataPacket::new(buf) {
+            Ok(packet) => Ok(packet),
             Err(err) => Err(PacketError {
                 message: err.to_string(),
             }),
