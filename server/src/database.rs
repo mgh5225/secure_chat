@@ -30,6 +30,13 @@ impl Database {
         let mut conn = self.db.get_connection()?;
         let hash: HashMap<u8, String> = conn.hgetall(key)?;
 
+        if hash.is_empty() {
+            return Err(redis::RedisError::from((
+                redis::ErrorKind::IoError,
+                "User Not Found",
+            )));
+        }
+
         let user = BaseModels::User::from_hash(hash);
 
         Ok(user)
