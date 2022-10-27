@@ -52,6 +52,12 @@ impl Session {
             }
         };
 
+        if matches!(data_packet.get_type(), PacketType::Error) {
+            return Err(SessionError {
+                message: data_packet.get_data(),
+            });
+        }
+
         let packet: Packet<BaseModels::User> =
             match Packet::parse(&data_packet, "Wrong Packet Received") {
                 Ok(packet) => packet,

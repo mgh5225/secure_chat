@@ -36,6 +36,10 @@ impl DataPacket {
     pub fn get_type(&self) -> PacketType {
         self.p_type
     }
+
+    pub fn get_data(&self) -> String {
+        self.data.clone()
+    }
 }
 
 pub struct Packet<T> {
