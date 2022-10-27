@@ -40,7 +40,7 @@ impl Client {
             },
             PacketType::Logout => {
                 self.me = None;
-                DataPacket::OkMessage(String::from("Logout Successfully"))
+                DataPacket::ok_message(String::from("Logout Successfully"))
             }
             PacketType::Register => match Packet::parse(&packet, "Packet Type Error Register") {
                 Ok(packet) => self.register_user(packet),
@@ -77,7 +77,7 @@ impl Client {
                 }
             }
             PacketType::Listen => todo!(),
-            _ => DataPacket::ErrorMessage(String::from("Packet Type Error")),
+            _ => DataPacket::error_message(String::from("Packet Type Error")),
         };
 
         packet_manager::send_packet(&mut self.stream, packet).unwrap();
@@ -91,8 +91,8 @@ impl Client {
     }
     fn register_user(&self, packet: Packet<BaseModels::User>) -> DataPacket {
         let res_packet = match self.db.create_user(packet.get().1) {
-            Ok(()) => DataPacket::OkMessage(String::from("User Created Successfully")),
-            Err(err) => DataPacket::ErrorMessage(err.to_string()),
+            Ok(()) => DataPacket::ok_message(String::from("User Created Successfully")),
+            Err(err) => DataPacket::error_message(err.to_string()),
         };
 
         res_packet
@@ -100,10 +100,10 @@ impl Client {
     fn login_user(&self, packet: Packet<BaseModels::User>) -> DataPacket {
         let user = match self.db.get_user(packet.get().1.get_key()) {
             Ok(user) => user,
-            Err(err) => return DataPacket::ErrorMessage(err.to_string()),
+            Err(err) => return DataPacket::error_message(err.to_string()),
         };
 
-        DataPacket::OkMessage(String::from("Login Successfully"))
+        DataPacket::ok_message(String::from("Login Successfully"))
     }
     fn create_group(&self, packet: Packet<BaseModels::Group>) -> DataPacket {
         todo!()

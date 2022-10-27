@@ -8,14 +8,14 @@ pub struct DataPacket {
 }
 
 impl DataPacket {
-    pub fn ErrorMessage(message: String) -> Self {
+    pub fn error_message(message: String) -> Self {
         Self {
             p_type: PacketType::Error,
             data: message,
         }
     }
 
-    pub fn OkMessage(message: String) -> Self {
+    pub fn ok_message(message: String) -> Self {
         Self {
             p_type: PacketType::Ok,
             data: message,
@@ -80,7 +80,7 @@ where
     pub fn parse(packet: &'a DataPacket, error_message: &str) -> Result<Self, DataPacket> {
         let packet = match Self::from(packet) {
             Ok(packet) => packet,
-            _ => return Err(DataPacket::ErrorMessage(String::from(error_message))),
+            _ => return Err(DataPacket::error_message(String::from(error_message))),
         };
 
         Ok(packet)
