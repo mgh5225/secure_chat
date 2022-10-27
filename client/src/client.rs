@@ -72,6 +72,17 @@ impl Client {
                         .send(ClientMessage::Err(String::from("Session Not Created")))
                         .unwrap(),
                 },
+                ClientMessage::Signup(name, user, pass) => {
+                    match &mut client.lock().unwrap().session {
+                        Some(session) => match session.signup(name, user, pass) {
+                            Ok(_) => tx.send(ClientMessage::LoginSuccess).unwrap(),
+                            Err(err) => tx.send(ClientMessage::Err(err.message)).unwrap(),
+                        },
+                        None => tx
+                            .send(ClientMessage::Err(String::from("Session Not Created")))
+                            .unwrap(),
+                    }
+                }
                 _ => {}
             }
         }
