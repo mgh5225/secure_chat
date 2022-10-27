@@ -4,6 +4,7 @@ pub use page::{Page, PageEvent, PageMessage};
 mod pages;
 pub use pages::login_page::{LoginPage, LoginPageEvent};
 pub use pages::main_page::{MainPage, MainPageEvent};
+pub use pages::signup_page::{SignupPage, SignupPageEvent};
 
 mod client;
 pub use client::{Client, ClientMessage};
@@ -50,19 +51,22 @@ impl Manager {
     }
 
     pub fn run(&mut self) {
-        let rx = Arc::clone(&self.rx);
-        let rx_page = Arc::clone(&self.rx_page);
-
-        let tx = self.tx.clone();
-        let tx_page = self.tx_page.clone();
-
         let cb_sink = self.cb_sink.clone();
+        let tx_page = self.tx_page.clone();
+        let rx_client = Arc::clone(&self.rx);
 
-        let channel_handler = thread::spawn(move || Self::manage_client(cb_sink, tx_page, rx));
+        let channel_handler =
+            thread::spawn(move || Self::manage_client(cb_sink, tx_page, rx_client));
 
         self.channel_handler = Some(channel_handler);
 
-        let page_handler = thread::spawn(move || Self::manage_page(tx, rx_page));
+        let cb_sink = self.cb_sink.clone();
+        let tx_client = self.tx.clone();
+        let tx_page = self.tx_page.clone();
+        let rx_page = Arc::clone(&self.rx_page);
+
+        let page_handler =
+            thread::spawn(move || Self::manage_page(cb_sink, tx_client, tx_page, rx_page));
 
         self.page_handler = Some(page_handler);
 
@@ -73,11 +77,11 @@ impl Manager {
 
     fn manage_client(
         cb_sink: cursive::CbSink,
-        tx: mpsc::Sender<PageMessage>,
-        rx: Arc<Mutex<mpsc::Receiver<ClientMessage>>>,
+        tx_page: mpsc::Sender<PageMessage>,
+        rx_client: Arc<Mutex<mpsc::Receiver<ClientMessage>>>,
     ) {
         loop {
-            let message = rx.lock().unwrap().recv().unwrap();
+            let message = rx_client.lock().unwrap().recv().unwrap();
 
             match message {
                 ClientMessage::Terminate => break,
@@ -87,7 +91,7 @@ impl Manager {
                         .unwrap();
                 }
                 ClientMessage::ConnectedToServer => {
-                    let login_tx = tx.clone();
+                    let login_tx = tx_page.clone();
                     cb_sink
                         .send(Box::new(|s| {
                             let login_page = Self::render_login_page(login_tx);
@@ -102,9 +106,14 @@ impl Manager {
         }
     }
 
-    fn manage_page(tx: mpsc::Sender<ClientMessage>, rx: Arc<Mutex<mpsc::Receiver<PageMessage>>>) {
+    fn manage_page(
+        cb_sink: cursive::CbSink,
+        tx_client: mpsc::Sender<ClientMessage>,
+        tx_page: mpsc::Sender<PageMessage>,
+        rx_page: Arc<Mutex<mpsc::Receiver<PageMessage>>>,
+    ) {
         loop {
-            let message = rx.lock().unwrap().recv().unwrap();
+            let message = rx_page.lock().unwrap().recv().unwrap();
 
             match message.downcast_ref::<PageEvent>() {
                 Some(PageEvent::Terminate) => break,
@@ -116,11 +125,12 @@ impl Manager {
                     break;
                 }
                 Some(MainPageEvent::ConnectToServer(addr, port)) => {
-                    tx.send(ClientMessage::ConnectToServer(
-                        String::from(addr),
-                        String::from(port),
-                    ))
-                    .unwrap();
+                    tx_client
+                        .send(ClientMessage::ConnectToServer(
+                            String::from(addr),
+                            String::from(port),
+                        ))
+                        .unwrap();
                 }
                 _ => {}
             }
@@ -130,7 +140,46 @@ impl Manager {
                     break;
                 }
                 Some(LoginPageEvent::Login(user, pass)) => {
-                    tx.send(ClientMessage::Login(String::from(user), String::from(pass)))
+                    tx_client
+                        .send(ClientMessage::Login(String::from(user), String::from(pass)))
+                        .unwrap();
+                }
+                Some(LoginPageEvent::GoToSignup) => {
+                    let signup_tx = tx_page.clone();
+                    cb_sink
+                        .send(Box::new(|s| {
+                            let signup_page = Self::render_signup_page(signup_tx);
+
+                            s.pop_layer();
+                            s.add_layer(signup_page.body());
+                        }))
+                        .unwrap();
+                }
+                _ => {}
+            }
+
+            match message.downcast_ref::<SignupPageEvent>() {
+                Some(SignupPageEvent::Quit) => {
+                    break;
+                }
+                Some(SignupPageEvent::Signup(name, user, pass)) => {
+                    tx_client
+                        .send(ClientMessage::Signup(
+                            String::from(name),
+                            String::from(user),
+                            String::from(pass),
+                        ))
+                        .unwrap();
+                }
+                Some(SignupPageEvent::GoToLogin) => {
+                    let login_tx = tx_page.clone();
+                    cb_sink
+                        .send(Box::new(|s| {
+                            let login_page = Self::render_login_page(login_tx);
+
+                            s.pop_layer();
+                            s.add_layer(login_page.body());
+                        }))
                         .unwrap();
                 }
                 _ => {}
@@ -145,6 +194,10 @@ impl Manager {
 
     fn render_login_page(tx: mpsc::Sender<PageMessage>) -> LoginPage {
         LoginPage::new(tx)
+    }
+
+    fn render_signup_page(tx: mpsc::Sender<PageMessage>) -> SignupPage {
+        SignupPage::new(tx)
     }
 
     fn render_error(message: String) -> Dialog {

@@ -82,6 +82,7 @@ pub enum ClientMessage {
     Terminate,
     ConnectToServer(String, String),
     Login(String, String),
+    Signup(String, String, String),
     Err(String),
     ConnectedToServer,
     LoginSuccess,
